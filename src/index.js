@@ -4,7 +4,7 @@ const redis = require("./redis");
 const { websocketsOfUsers } = require("./state");
 require("./pubSub");
 
-const wss = new WebSocket.Server({ port: config.port });
+const wss = new WebSocket.Server({ host: config.host, port: config.port });
 
 function noop() {}
 
@@ -39,6 +39,13 @@ wss.on("connection", async ws => {
   });
 
   await loginEvent(ws, loginData);
+});
+
+wss.on("listening", x => {
+  console.log(
+    `WS Server is running on ${wss.options.host}:${wss.options.port} in ${config.mode} mode`
+  );
+  // `WS Server is running on ${conf} in ${config.mode} mode`
 });
 
 const interval = setInterval(() => {
