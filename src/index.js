@@ -20,7 +20,7 @@ wss.on("connection", async ws => {
   if (!loginDataUnparsed) return ws.terminate();
 
   const loginData = JSON.parse(loginDataUnparsed);
-  const userId = loginData.id;
+  const userId = loginData.userId;
 
   // ws.isAlive = true;
   ws.on("pong", heartbeat);

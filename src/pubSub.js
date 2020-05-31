@@ -1,8 +1,7 @@
 /* eslint-disable prefer-const */
 const Redis = require("ioredis");
 const config = require("./config");
-// const redis = require("./redis");
-// const { websocketsOfUsers, channelsState } = require("./state");
+
 const {
   userEvents,
   userChannelEvents,

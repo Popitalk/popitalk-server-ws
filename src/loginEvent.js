@@ -5,15 +5,12 @@ const { HELLO, WS_FRIEND_ONLINE } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
 
 const loginEvent = async (ws, loginData) => {
-  const userId = loginData.id;
+  const userId = loginData.userId;
 
   subscriber.subscribe(userId);
   websocketsOfUsers.set(userId, ws);
 
-  const channels = Object.entries(loginData.channels).map(ch => ({
-    id: ch[0],
-    type: ch[1].type
-  }));
+  const channels = loginData.channels;
 
   if (channels) {
     usersState.set(userId, new Map());
