@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 const { heartbeatInterval } = require("./config");
 const { websocketsOfUsers, channelsState, usersState } = require("./state");
-const { HELLO, WS_FRIEND_ONLINE } = require("./constants");
+const { HELLO, CHANNEL_EVENTS } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
 
 const loginEvent = async (ws, loginData) => {
@@ -19,7 +19,7 @@ const loginEvent = async (ws, loginData) => {
       usersState.get(userId).set(channelId, channelType);
       if (channelType === "friend") {
         publisher({
-          type: WS_FRIEND_ONLINE,
+          type: CHANNEL_EVENTS.WS_FRIEND_ONLINE,
           channelId,
           initiator: userId,
           payload: { channelId }

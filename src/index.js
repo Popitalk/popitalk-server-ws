@@ -2,15 +2,12 @@ const WebSocket = require("ws");
 const config = require("./config");
 const redis = require("./redis");
 const { websocketsOfUsers } = require("./state");
+const loginEvent = require("./loginEvent");
+const logoutEvent = require("./logoutEvent");
+const { PING, PONG } = require("./constants");
 require("./pubSub");
 
 const wss = new WebSocket.Server({ host: config.host, port: config.port });
-
-function noop() {}
-
-function heartbeat() {
-  this.isAlive = true;
-}
 
 wss.on("connection", async ws => {
   const wsTicket = ws.protocol;
@@ -22,15 +19,16 @@ wss.on("connection", async ws => {
   const loginData = JSON.parse(loginDataUnparsed);
   const userId = loginData.userId;
 
-  // ws.isAlive = true;
-  ws.on("pong", heartbeat);
-
   ws.on("error", err => {
     console.log("ERROR: ", err);
   });
 
   ws.on("message", message => {
-    console.log("MESSAGE: ", message);
+    const parsedMessage = JSON.parse(message);
+    const messageType = parsedMessage.type;
+    if (messageType === PONG) {
+      ws.isAlive = true;
+    }
   });
 
   ws.on("close", async () => {
@@ -41,11 +39,10 @@ wss.on("connection", async ws => {
   await loginEvent(ws, loginData);
 });
 
-wss.on("listening", x => {
+wss.on("listening", () => {
   console.log(
     `WS Server is running on ${wss.options.host}:${wss.options.port} in ${config.mode} mode`
   );
-  // `WS Server is running on ${conf} in ${config.mode} mode`
 });
 
 const interval = setInterval(() => {
@@ -53,7 +50,10 @@ const interval = setInterval(() => {
     if (ws.isAlive === false) return ws.terminate();
 
     ws.isAlive = false;
-    ws.ping(noop);
+
+    if (ws.readyState === 1) {
+      ws.send(JSON.stringify({ type: PING }));
+    }
   });
 }, config.heartbeatInterval);
 

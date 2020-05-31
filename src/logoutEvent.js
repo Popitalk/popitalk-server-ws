@@ -1,7 +1,7 @@
 /* eslint-disable no-param-reassign */
 const { channelsState, usersState } = require("./state");
 const { subscriber, publisher } = require("./pubSub");
-const { WS_FRIEND_OFFLINE } = require("./constants");
+const { CHANNEL_EVENTS } = require("./constants");
 // const redis = require("./redis");
 
 const logoutEvent = async userId => {
@@ -9,12 +9,10 @@ const logoutEvent = async userId => {
   for await (const cid of usersState.get(userId).entries()) {
     if (cid[1] === "friend") {
       publisher({
-        type: WS_FRIEND_OFFLINE,
+        type: CHANNEL_EVENTS.WS_FRIEND_OFFLINE,
         channelId: cid[0],
         initiator: userId,
-        payload: {
-          channelId: cid[0]
-        }
+        payload: { channelId: cid[0] }
       });
     }
   }

@@ -1,19 +1,6 @@
 /* eslint-disable prefer-const */
-// const _ = require("lodash");
 const { websocketsOfUsers, channelsState, usersState } = require("./state");
-const {
-  userEvents,
-  channelEvents,
-  channelsEvents,
-  WS_ADD_FRIEND,
-  WS_ADD_CHANNEL,
-  WS_DELETE_CHANNEL,
-  WS_JOIN_CHANNEL,
-  WS_LEAVE_CHANNEL,
-  WS_DELETE_FRIEND_ROOM,
-  WS_SUBSCRIBE_CHANNEL,
-  WS_UNSUBSCRIBE_CHANNEL
-} = require("./constants");
+const { USER_EVENTS, CHANNEL_EVENTS, CHANNELS_EVENTS } = require("./constants");
 
 const broadcaster = async ({
   messageType,
@@ -25,13 +12,13 @@ const broadcaster = async ({
   subscriber
 }) => {
   try {
-    if (userEvents.includes(messageType)) {
+    if (USER_EVENTS[messageType]) {
       const ws = websocketsOfUsers.get(userId);
 
       if (
-        messageType === WS_SUBSCRIBE_CHANNEL ||
-        messageType === WS_ADD_FRIEND ||
-        messageType === WS_ADD_CHANNEL
+        messageType === USER_EVENTS.WS_SUBSCRIBE_CHANNEL ||
+        messageType === USER_EVENTS.WS_ADD_FRIEND ||
+        messageType === USER_EVENTS.WS_ADD_CHANNEL
       ) {
         usersState.get(userId).set(channelId, messagePayload.type);
         if (!channelsState.has(channelId)) {
@@ -39,7 +26,7 @@ const broadcaster = async ({
           subscriber.subscribe(channelId);
         }
         channelsState.get(channelId).add(userId);
-      } else if (messageType === WS_UNSUBSCRIBE_CHANNEL) {
+      } else if (messageType === USER_EVENTS.WS_UNSUBSCRIBE_CHANNEL) {
         usersState.get(userId).delete(channelId);
         channelsState.get(channelId).delete(userId);
 
@@ -51,8 +38,8 @@ const broadcaster = async ({
 
       if (
         !(
-          messageType === WS_SUBSCRIBE_CHANNEL ||
-          messageType === WS_UNSUBSCRIBE_CHANNEL
+          messageType === USER_EVENTS.WS_SUBSCRIBE_CHANNEL ||
+          messageType === USER_EVENTS.WS_UNSUBSCRIBE_CHANNEL
         )
       ) {
         ws.send(
@@ -62,8 +49,8 @@ const broadcaster = async ({
           })
         );
       }
-    } else if (channelEvents.includes(messageType)) {
-      if (messageType === WS_DELETE_FRIEND_ROOM) {
+    } else if (CHANNEL_EVENTS[messageType]) {
+      if (messageType === CHANNEL_EVENTS.WS_DELETE_FRIEND_ROOM) {
         if (channelsState.has(channelId)) {
           const userIds = channelsState.get(channelId).values();
 
@@ -92,7 +79,7 @@ const broadcaster = async ({
           }
         }
 
-        if (messageType === WS_DELETE_CHANNEL) {
+        if (messageType === CHANNEL_EVENTS.WS_DELETE_CHANNEL) {
           const userIds2 = channelsState.get(channelId).values();
           for await (const uid of userIds2) {
             usersState.get(uid).delete(channelId);
@@ -101,7 +88,7 @@ const broadcaster = async ({
           subscriber.unsubscribe(channelId);
         }
       }
-    } else if (channelsEvents.includes(messageType)) {
+    } else if (CHANNELS_EVENTS[messageType]) {
       if (usersState.has(userId)) {
         const channelIds = usersState.get(userId).keys();
 
