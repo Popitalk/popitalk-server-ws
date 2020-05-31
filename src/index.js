@@ -13,31 +13,32 @@ function heartbeat() {
 }
 
 wss.on("connection", async ws => {
-  console.log("PROTOCOL", ws.protocol);
-  // const wsTicket = ws.protocol;
-  // const loginDataUnparsed = await redis.get(wsTicket);
-  // const loginData = JSON.parse(loginDataUnparsed);
-  // If doesn't exist ^, then ws.terminate();
-  const userId = 123;
+  const wsTicket = ws.protocol;
+  if (!wsTicket || wsTicket.length === 0) return ws.terminate();
 
-  ws.isAlive = true;
+  const loginDataUnparsed = await redis.get(wsTicket);
+  if (!loginDataUnparsed) return ws.terminate();
+
+  const loginData = JSON.parse(loginDataUnparsed);
+  const userId = loginData.id;
+
+  // ws.isAlive = true;
   ws.on("pong", heartbeat);
 
   ws.on("error", err => {
-    console.log("HANDLING ERROR");
+    console.log("ERROR: ", err);
   });
 
   ws.on("message", message => {
-    console.log("received: %s", message);
+    console.log("MESSAGE: ", message);
   });
 
-  ws.on("close", () => {
-    // websocketsOfUsers.delete(userId);
-    // logoutEvent(userId);
+  ws.on("close", async () => {
+    websocketsOfUsers.delete(userId);
+    await logoutEvent(userId);
   });
 
-  // ws.send("something");
-  // await loginEvent(ws, userId)
+  await loginEvent(ws, loginData);
 });
 
 const interval = setInterval(() => {

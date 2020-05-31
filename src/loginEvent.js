@@ -1,34 +1,31 @@
 /* eslint-disable no-param-reassign */
 const { heartbeatInterval } = require("./config");
-const {
-  websocketsOfUsers,
-  channelsState,
-  usersState
-} = require("../../config/state");
+const { websocketsOfUsers, channelsState, usersState } = require("./state");
 const { HELLO, WS_FRIEND_ONLINE } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
-const getChannelsIdsAndTypes = require("../../database/queries/getChannelsIdsAndTypes");
 
-const loginEvent = async (ws, request) => {
-  const userId = request.session.passport.user;
+const loginEvent = async (ws, loginData) => {
+  const userId = loginData.id;
 
   subscriber.subscribe(userId);
   websocketsOfUsers.set(userId, ws);
 
-  const allChannels = await getChannelsIdsAndTypes({ userId });
-  if (allChannels) {
+  const channels = Object.entries(loginData.channels).map(ch => ({
+    id: ch[0],
+    type: ch[1].type
+  }));
+
+  if (channels) {
     usersState.set(userId, new Map());
 
-    allChannels.forEach(({ id: channelId, type: channelType }) => {
+    channels.forEach(({ id: channelId, type: channelType }) => {
       usersState.get(userId).set(channelId, channelType);
       if (channelType === "friend") {
         publisher({
           type: WS_FRIEND_ONLINE,
           channelId,
           initiator: userId,
-          payload: {
-            channelId
-          }
+          payload: { channelId }
         });
       }
     });
@@ -44,12 +41,11 @@ const loginEvent = async (ws, request) => {
   }
 
   ws.isAlive = true;
+
   ws.send(
     JSON.stringify({
       type: HELLO,
-      payload: {
-        heartbeatInterval: Number(heartbeatInterval)
-      }
+      payload: { heartbeatInterval: Number(heartbeatInterval) }
     })
   );
 };
