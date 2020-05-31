@@ -1,37 +1,54 @@
-const glue = require("@hapi/glue");
+const WebSocket = require("ws");
 const config = require("./config");
-const manifest = require("./manifest");
+const redis = require("./redis");
+const { websocketsOfUsers } = require("./state");
+require("./pubSub");
 
-const startServer = async () => {
-  try {
-    const server = await glue.compose(manifest, { relativeTo: __dirname });
-    await server.start();
+const wss = new WebSocket.Server({ port: config.port });
 
-    server.log(
-      ["serv"],
-      `Server is running on ${server.info.uri} in ${config.mode} mode`
-    );
+function noop() {}
 
-    // [
-    //   "SIGINT",
-    //   "SIGTERM",
-    //   "SIGQUIT",
-    //   // "SIGKILL",
-    //   "uncaughtException",
-    //   "unhandledRejection"
-    // ].forEach(signal => {
-    //   process.on(signal, async () => {
-    //     server.log(["serv"], "Server stopped");
-    //     await server.stop({ timeout: 60000 });
-    //     // await closeAllConnections();
-    //     process.exit(1);
-    //   });
-    // });
-  } catch (error) {
-    // eslint-disable-next-line no-console
-    console.error(error);
-    process.exit(1);
-  }
-};
+function heartbeat() {
+  this.isAlive = true;
+}
 
-startServer();
+wss.on("connection", async ws => {
+  console.log("PROTOCOL", ws.protocol);
+  // const wsTicket = ws.protocol;
+  // const loginDataUnparsed = await redis.get(wsTicket);
+  // const loginData = JSON.parse(loginDataUnparsed);
+  // If doesn't exist ^, then ws.terminate();
+  const userId = 123;
+
+  ws.isAlive = true;
+  ws.on("pong", heartbeat);
+
+  ws.on("error", err => {
+    console.log("HANDLING ERROR");
+  });
+
+  ws.on("message", message => {
+    console.log("received: %s", message);
+  });
+
+  ws.on("close", () => {
+    // websocketsOfUsers.delete(userId);
+    // logoutEvent(userId);
+  });
+
+  // ws.send("something");
+  // await loginEvent(ws, userId)
+});
+
+const interval = setInterval(() => {
+  wss.clients.forEach(ws => {
+    if (ws.isAlive === false) return ws.terminate();
+
+    ws.isAlive = false;
+    ws.ping(noop);
+  });
+}, config.heartbeatInterval);
+
+wss.on("close", () => {
+  clearInterval(interval);
+});
