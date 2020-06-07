@@ -1,25 +1,26 @@
 /* eslint-disable no-param-reassign */
 const { heartbeatInterval } = require("./config");
-const { websocketsOfUsers, channelsState, usersState } = require("./state");
-const { HELLO, CHANNEL_EVENTS } = require("./constants");
+const state = require("./state");
+const { WS_EVENTS } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
 
 const loginEvent = async (ws, loginData) => {
   const userId = loginData.userId;
 
   subscriber.subscribe(userId);
-  websocketsOfUsers.set(userId, ws);
+  state.websockets.set(userId, ws);
 
   const channels = loginData.channels;
 
   if (channels) {
-    usersState.set(userId, new Map());
+    state.users.set(userId, new Map());
 
     channels.forEach(({ id: channelId, type: channelType }) => {
-      usersState.get(userId).set(channelId, channelType);
+      state.users.get(userId).set(channelId, channelType);
+
       if (channelType === "friend") {
         publisher({
-          type: CHANNEL_EVENTS.WS_FRIEND_ONLINE,
+          type: WS_EVENTS.CHANNEL.SET_FRIEND_ONLINE,
           channelId,
           initiator: userId,
           payload: { channelId }
@@ -27,13 +28,13 @@ const loginEvent = async (ws, loginData) => {
       }
     });
 
-    for await (const cid of usersState.get(userId).keys()) {
-      if (!channelsState.has(cid)) {
-        channelsState.set(cid, new Set());
+    for await (const cid of state.users.get(userId).keys()) {
+      if (!state.channels.has(cid)) {
+        state.channels.set(cid, new Set());
         subscriber.subscribe(cid);
       }
 
-      channelsState.get(cid).add(userId);
+      state.channels.get(cid).add(userId);
     }
   }
 
@@ -41,7 +42,7 @@ const loginEvent = async (ws, loginData) => {
 
   ws.send(
     JSON.stringify({
-      type: HELLO,
+      type: WS_EVENTS.HELLO,
       payload: { heartbeatInterval: Number(heartbeatInterval) }
     })
   );

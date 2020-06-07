@@ -1,10 +1,10 @@
 const WebSocket = require("ws");
 const config = require("./config");
 const redis = require("./redis");
-const { websocketsOfUsers } = require("./state");
+const state = require("./state");
 const loginEvent = require("./loginEvent");
 const logoutEvent = require("./logoutEvent");
-const { PING, PONG } = require("./constants");
+const { WS_EVENTS } = require("./constants");
 require("./pubSub");
 
 const wss = new WebSocket.Server({ host: config.host, port: config.port });
@@ -26,13 +26,13 @@ wss.on("connection", async ws => {
   ws.on("message", message => {
     const parsedMessage = JSON.parse(message);
     const messageType = parsedMessage.type;
-    if (messageType === PONG) {
+    if (messageType === WS_EVENTS.PONG) {
       ws.isAlive = true;
     }
   });
 
   ws.on("close", async () => {
-    websocketsOfUsers.delete(userId);
+    state.websockets.delete(userId);
     await logoutEvent(userId);
   });
 
@@ -52,7 +52,7 @@ const interval = setInterval(() => {
     ws.isAlive = false;
 
     if (ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: PING }));
+      ws.send(JSON.stringify({ type: WS_EVENTS.PING }));
     }
   });
 }, config.heartbeatInterval);

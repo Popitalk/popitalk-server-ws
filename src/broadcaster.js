@@ -1,6 +1,6 @@
 /* eslint-disable prefer-const */
-const { websocketsOfUsers, channelsState, usersState } = require("./state");
-const { USER_EVENTS, CHANNEL_EVENTS, CHANNELS_EVENTS } = require("./constants");
+const state = require("./state");
+const { WS_EVENTS } = require("./constants");
 
 const broadcaster = async ({
   messageType,
@@ -12,34 +12,34 @@ const broadcaster = async ({
   subscriber
 }) => {
   try {
-    if (USER_EVENTS[messageType]) {
-      const ws = websocketsOfUsers.get(userId);
+    if (WS_EVENTS.USER[messageType]) {
+      const ws = state.websockets.get(userId);
 
       if (
-        messageType === USER_EVENTS.WS_SUBSCRIBE_CHANNEL ||
-        messageType === USER_EVENTS.WS_ADD_FRIEND ||
-        messageType === USER_EVENTS.WS_ADD_CHANNEL
+        messageType === WS_EVENTS.USER.SUBSCRIBE_CHANNEL ||
+        messageType === WS_EVENTS.USER.ADD_FRIEND ||
+        messageType === WS_EVENTS.USER.ADD_CHANNEL
       ) {
-        usersState.get(userId).set(channelId, messagePayload.type);
-        if (!channelsState.has(channelId)) {
-          channelsState.set(channelId, new Set());
+        state.users.get(userId).set(channelId, messagePayload.type);
+        if (!state.channels.has(channelId)) {
+          state.channels.set(channelId, new Set());
           subscriber.subscribe(channelId);
         }
-        channelsState.get(channelId).add(userId);
-      } else if (messageType === USER_EVENTS.WS_UNSUBSCRIBE_CHANNEL) {
-        usersState.get(userId).delete(channelId);
-        channelsState.get(channelId).delete(userId);
+        state.channels.get(channelId).add(userId);
+      } else if (messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL) {
+        state.users.get(userId).delete(channelId);
+        state.channels.get(channelId).delete(userId);
 
-        if (channelsState.get(channelId).size === 0) {
-          channelsState.delete(channelId);
+        if (state.channels.get(channelId).size === 0) {
+          state.channels.delete(channelId);
           subscriber.unsubscribe(channelId);
         }
       }
 
       if (
         !(
-          messageType === USER_EVENTS.WS_SUBSCRIBE_CHANNEL ||
-          messageType === USER_EVENTS.WS_UNSUBSCRIBE_CHANNEL
+          messageType === WS_EVENTS.USER.SUBSCRIBE_CHANNEL ||
+          messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL
         )
       ) {
         ws.send(
@@ -49,21 +49,21 @@ const broadcaster = async ({
           })
         );
       }
-    } else if (CHANNEL_EVENTS[messageType]) {
-      if (messageType === CHANNEL_EVENTS.WS_DELETE_FRIEND_ROOM) {
-        if (channelsState.has(channelId)) {
-          const userIds = channelsState.get(channelId).values();
+    } else if (WS_EVENTS.CHANNEL[messageType]) {
+      // if (messageType === CHANNEL_EVENTS.WS_DELETE_FRIEND_ROOM) {
+      //   if (state.channels.has(channelId)) {
+      //     const userIds = state.channels.get(channelId).values();
 
-          for await (const uid of userIds) {
-            usersState.get(uid).delete(channelId);
-          }
-        }
-        channelsState.delete(channelId);
-        subscriber.unsubscribe(channelId);
-      }
+      //     for await (const uid of userIds) {
+      //       state.users.get(uid).delete(channelId);
+      //     }
+      //   }
+      //   state.channels.delete(channelId);
+      //   subscriber.unsubscribe(channelId);
+      // }
 
-      if (channelsState.has(channelId)) {
-        const userIds = channelsState.get(channelId).values();
+      if (state.channels.has(channelId)) {
+        const userIds = state.channels.get(channelId).values();
 
         for await (const uid of userIds) {
           const ws = websocketsOfUsers.get(uid);
@@ -79,22 +79,22 @@ const broadcaster = async ({
           }
         }
 
-        if (messageType === CHANNEL_EVENTS.WS_DELETE_CHANNEL) {
-          const userIds2 = channelsState.get(channelId).values();
+        if (messageType === WS_EVENTS.CHANNEL.DELETE_CHANNEL) {
+          const userIds2 = state.channels.get(channelId).values();
           for await (const uid of userIds2) {
-            usersState.get(uid).delete(channelId);
+            state.users.get(uid).delete(channelId);
           }
-          channelsState.delete(channelId);
+          state.channels.delete(channelId);
           subscriber.unsubscribe(channelId);
         }
       }
-    } else if (CHANNELS_EVENTS[messageType]) {
-      if (usersState.has(userId)) {
-        const channelIds = usersState.get(userId).keys();
+    } else if (WS_EVENTS.USERS_CHANNELS[messageType]) {
+      if (state.users.has(userId)) {
+        const channelIds = state.users.get(userId).keys();
 
         for await (const cid of channelIds) {
-          if (channelsState.has(cid)) {
-            const userIds = channelsState.get(cid).values();
+          if (state.channels.has(cid)) {
+            const userIds = state.channels.get(cid).values();
 
             for await (const uid of userIds) {
               const ws = websocketsOfUsers.get(uid);

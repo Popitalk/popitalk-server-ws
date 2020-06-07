@@ -1,15 +1,15 @@
 /* eslint-disable no-param-reassign */
-const { channelsState, usersState } = require("./state");
+const state = require("./state");
+const { WS_EVENTS } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
-const { CHANNEL_EVENTS } = require("./constants");
 // const redis = require("./redis");
 
 const logoutEvent = async userId => {
   // entries error, why?
-  for await (const cid of usersState.get(userId).entries()) {
+  for await (const cid of state.users.get(userId).entries()) {
     if (cid[1] === "friend") {
       publisher({
-        type: CHANNEL_EVENTS.WS_FRIEND_OFFLINE,
+        type: WS_EVENTS.CHANNEL.SET_FRIEND_OFFLINE,
         channelId: cid[0],
         initiator: userId,
         payload: { channelId: cid[0] }
@@ -17,20 +17,20 @@ const logoutEvent = async userId => {
     }
   }
 
-  for await (const cid of usersState.get(userId).keys()) {
-    if (channelsState.has(cid)) {
-      channelsState.get(cid).delete(userId);
+  for await (const cid of state.users.get(userId).keys()) {
+    if (state.channels.has(cid)) {
+      state.channels.get(cid).delete(userId);
 
-      if (channelsState.get(cid).size === 0) {
-        channelsState.delete(cid);
+      if (state.channels.get(cid).size === 0) {
+        state.channels.delete(cid);
         subscriber.unsubscribe(cid);
       }
     }
   }
 
   subscriber.unsubscribe(userId);
-  usersState.delete(userId);
-  // websocketsOfUsers.delete(userId);
+  state.users.delete(userId);
+  // state.websockets.delete(userId);
 
   // await pipeline.exec();
 };

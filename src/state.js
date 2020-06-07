@@ -1,9 +1,9 @@
-const websocketsOfUsers = new Map();
-const channelsState = new Map();
-const usersState = new Map();
+const websockets = new Map();
+const channels = new Map();
+const users = new Map();
 
 module.exports = {
-  websocketsOfUsers,
-  channelsState,
-  usersState
+  websockets,
+  channels,
+  users
 };
