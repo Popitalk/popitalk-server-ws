@@ -66,7 +66,7 @@ const broadcaster = async ({
         const userIds = state.channels.get(channelId).values();
 
         for await (const uid of userIds) {
-          const ws = websocketsOfUsers.get(uid);
+          const ws = state.websockets.get(uid);
 
           // if(ws.readyState === 1)
           if (uid !== messageInitiator) {
@@ -97,7 +97,7 @@ const broadcaster = async ({
             const userIds = state.channels.get(cid).values();
 
             for await (const uid of userIds) {
-              const ws = websocketsOfUsers.get(uid);
+              const ws = state.websockets.get(uid);
 
               ws.send(
                 JSON.stringify({
