@@ -23,12 +23,8 @@ wss.on("connection", async ws => {
     console.log("ERROR: ", err);
   });
 
-  ws.on("message", message => {
-    const parsedMessage = JSON.parse(message);
-    const messageType = parsedMessage.type;
-    if (messageType === WS_EVENTS.PONG) {
-      ws.isAlive = true;
-    }
+  ws.on("message", () => {
+    ws.isAlive = true;
   });
 
   ws.on("close", async () => {
@@ -44,16 +40,16 @@ wss.on("listening", () => {
     `WS Server is running on ${wss.options.host}:${wss.options.port} in ${config.mode} mode`
   );
 });
-
+// Each connected client isAlive is set to false
+// On message it is set to true
+// if between each heartbeat no message is received, ws is terminated.
+// Client responds with PONG when it receives PING. Which is a message and sets isAlive to true
 const interval = setInterval(() => {
   wss.clients.forEach(ws => {
     if (ws.isAlive === false) return ws.terminate();
 
     ws.isAlive = false;
-
-    if (ws.readyState === 1) {
-      ws.send(JSON.stringify({ type: WS_EVENTS.PING }));
-    }
+    ws.send(JSON.stringify({ type: WS_EVENTS.PING }));
   });
 }, config.heartbeatInterval);
 
