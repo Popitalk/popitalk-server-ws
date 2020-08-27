@@ -49,7 +49,7 @@ const broadcaster = async ({
           })
         );
       }
-    } else if (WS_EVENTS.CHANNEL[messageType]) {
+    } else if (WS_EVENTS.CHANNEL[messageType] || WS_EVENTS.VIDEO_CONTROL[messageType]) {
       // if (messageType === CHANNEL_EVENTS.WS_DELETE_FRIEND_ROOM) {
       //   if (state.channels.has(channelId)) {
       //     const userIds = state.channels.get(channelId).values();
