@@ -10,6 +10,7 @@
     "start": "cross-env NODE_ENV=development node ./src/index.js",
     "devserver": "cross-env NODE_ENV=development nodemon ./src/index.js",
     "production": "cross-env NODE_ENV=production node ./src/index.js",
+    "beanstalk-prod": "NODE_ENV=production node ./src/index.js",
     "prettier": "prettier \"./src/**/*.+(js|json|yml|yaml|ts|tsx|md|mdx|graphql)\"",
     "unprettified": "npm run prettier -- --list-different",
     "format": "npm run prettier -- --write",

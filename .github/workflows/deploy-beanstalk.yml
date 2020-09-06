@@ -1,0 +1,35 @@
+name: Deploy master!
+on:  
+  push:
+    branches:
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Clone repository
+        uses: actions/checkout@v2
+      - name: Use Node.js 12.x
+        uses: actions/setup-node@v1
+        with:
+          node-version: 12.x
+      - name: Install dependencies
+        run: npm install 
+      # - name: Lint
+      #  run: npm run lint #Enable after fixing lint errors
+        env:
+          CI: true
+      - name: Generate zip 
+        run: zip -r server.zip . -x '*.git*'
+      - name: Deploy to Beanstalk
+        uses: einaregilsson/beanstalk-deploy@v11
+        with:
+          aws_access_key: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws_secret_key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          application_name: popitalk-server-ws
+          environment_name: PopitalkServerWs-env
+          version_label: ${{ github.sha }}
+          region: ${{ secrets.AWS_DEFAULT_REGION }}
+          deployment_package: server.zip
+          use_existing_version_if_available: true
