@@ -4,6 +4,7 @@
 /logs/
 /coverage/
 /benchmarks/results/
+.env
 
 # Other
 *.log
