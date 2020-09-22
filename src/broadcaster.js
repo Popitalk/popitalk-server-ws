@@ -6,7 +6,6 @@ const broadcaster = async ({
   messageType,
   messagePayload,
   messageInitiator,
-  channelId,
   userId,
   publisher,
   subscriber
@@ -20,19 +19,27 @@ const broadcaster = async ({
         messageType === WS_EVENTS.USER.ADD_FRIEND ||
         messageType === WS_EVENTS.USER.ADD_CHANNEL
       ) {
-        state.users.get(userId).set(channelId, messagePayload.type);
-        if (!state.channels.has(channelId)) {
-          state.channels.set(channelId, new Set());
-          subscriber.subscribe(channelId);
-        }
-        state.channels.get(channelId).add(userId);
-      } else if (messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL) {
-        state.users.get(userId).delete(channelId);
-        state.channels.get(channelId).delete(userId);
+        // If a user SUBSCRIBE_CHANNEL or ADD_FRIEND or ADD_CHANNEL
+        // Get the users ID who initiated the event
+        // set a channelId and channel type on their state
+        state.users
+          .get(userId)
+          .set(messagePayload.channelId, messagePayload.type);
 
-        if (state.channels.get(channelId).size === 0) {
-          state.channels.delete(channelId);
-          subscriber.unsubscribe(channelId);
+        if (!state.channels.has(messagePayload.channelId)) {
+          state.channels.set(messagePayload.channelId, new Set());
+          subscriber.subscribe(messagePayload.channelId);
+        }
+        // Channel has a user ID added.
+        console.log("adds user id, ", { userId });
+        state.channels.get(messagePayload.channelId).add(userId);
+      } else if (messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL) {
+        state.users.get(userId).delete(messagePayload.channelId);
+        state.channels.get(messagePayload.channelId).delete(userId);
+
+        if (state.channels.get(messagePayload.channelId).size === 0) {
+          state.channels.delete(messagePayload.channelId);
+          subscriber.unsubscribe(messagePayload.channelId);
         }
       }
 
@@ -49,7 +56,10 @@ const broadcaster = async ({
           })
         );
       }
-    } else if (WS_EVENTS.CHANNEL[messageType] || WS_EVENTS.VIDEO_CONTROL[messageType]) {
+    } else if (
+      WS_EVENTS.CHANNEL[messageType] ||
+      WS_EVENTS.VIDEO_CONTROL[messageType]
+    ) {
       // if (messageType === CHANNEL_EVENTS.WS_DELETE_FRIEND_ROOM) {
       //   if (state.channels.has(channelId)) {
       //     const userIds = state.channels.get(channelId).values();
@@ -61,9 +71,9 @@ const broadcaster = async ({
       //   state.channels.delete(channelId);
       //   subscriber.unsubscribe(channelId);
       // }
-
-      if (state.channels.has(channelId)) {
-        const userIds = state.channels.get(channelId).values();
+      if (state.channels.has(messagePayload.channelId)) {
+        const userIds = state.channels.get(messagePayload.channelId).values();
+        console.log("add member event, ", { userIds });
 
         for await (const uid of userIds) {
           const ws = state.websockets.get(uid);
@@ -80,12 +90,14 @@ const broadcaster = async ({
         }
 
         if (messageType === WS_EVENTS.CHANNEL.DELETE_CHANNEL) {
-          const userIds2 = state.channels.get(channelId).values();
+          const userIds2 = state.channels
+            .get(messagePayload.channelId)
+            .values();
           for await (const uid of userIds2) {
-            state.users.get(uid).delete(channelId);
+            state.users.get(uid).delete(messagePayload.channelId);
           }
-          state.channels.delete(channelId);
-          subscriber.unsubscribe(channelId);
+          state.channels.delete(messagePayload.channelId);
+          subscriber.unsubscribe(messagePayload.channelId);
         }
       }
     } else if (WS_EVENTS.USERS_CHANNELS[messageType]) {

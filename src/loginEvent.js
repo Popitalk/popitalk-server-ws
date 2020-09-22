@@ -28,6 +28,8 @@ const loginEvent = async (ws, loginData) => {
       }
     });
 
+    // state.users.get(userId).keys() are channelId's
+    // values are the types of channels.
     for await (const cid of state.users.get(userId).keys()) {
       if (!state.channels.has(cid)) {
         state.channels.set(cid, new Set());
