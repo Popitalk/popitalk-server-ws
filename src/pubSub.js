@@ -50,7 +50,7 @@ publisher = async ({ type, initiator, channelId, userId, payload }) => {
         payload
       })
     );
-  } else if (WS_EVENTS.CHANNEL[type]) {
+  } else if (WS_EVENTS.CHANNEL[type] || WS_EVENTS.VIDEO_CONTROL[type]) {
     pub.publish(
       channelId,
       JSON.stringify({
@@ -74,52 +74,31 @@ publisher = async ({ type, initiator, channelId, userId, payload }) => {
       pub.publish(
         channelId,
         JSON.stringify({
-          type: WS_EVENTS.CHANNEL.ADD_MEMBER,
+          type: WS_EVENTS.CHANNEL.ADD_VIEWER,
           channelId,
           payload,
           initiator
         })
       );
     } else if (type === WS_EVENTS.USER_CHANNEL.LEAVE_CHANNEL) {
-      if (!payload.public) {
-        pub.publish(
+      pub.publish(
+        userId,
+        JSON.stringify({
+          type: WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL,
           userId,
-          JSON.stringify({
-            type: WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL,
-            userId,
-            payload
-          })
-        );
-      }
+          payload
+        })
+      );
       pub.publish(
         channelId,
         JSON.stringify({
-          type: WS_EVENTS.CHANNEL.DELETE_MEMBER,
+          type: WS_EVENTS.CHANNEL.DELETE_VIEWER,
           channelId,
           payload,
           initiator
         })
       );
-    }
-    // else if (type === WS_EVENTS.USER_CHANNEL.BEFRIEND) {
-    //   pub.publish(
-    //     userId,
-    //     JSON.stringify({
-    //       type: WS_EVENTS.USER.SUBSCRIBE_CHANNEL,
-    //       userId,
-    //       payload
-    //     })
-    //   );
-    //   pub.publish(
-    //     channelId,
-    //     JSON.stringify({
-    //       type: WS_EVENTS.CHANNEL,
-    //       channelId,
-    //       payload
-    //     })
-    //   );
-    // }
-    else if (type === WS_EVENTS.USER_CHANNEL.UNFRIEND) {
+    } else if (type === WS_EVENTS.USER_CHANNEL.UNFRIEND) {
       pub.publish(
         channelId,
         JSON.stringify({
