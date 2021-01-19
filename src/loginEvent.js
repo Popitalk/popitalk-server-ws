@@ -40,12 +40,21 @@ const loginEvent = async (ws, loginData) => {
     }
   }
 
+  const onLineFriends = Object.entries(loginData.friends)
+    .filter(ch => {
+      return state.users.has(ch[1]);
+    })
+    .map(ch => ch[0]);
+
   ws.isAlive = true;
 
   ws.send(
     JSON.stringify({
       type: WS_EVENTS.HELLO,
-      payload: { heartbeatInterval: Number(heartbeatInterval) }
+      payload: {
+        heartbeatInterval: Number(heartbeatInterval),
+        onLineFriends
+      }
     })
   );
 };
