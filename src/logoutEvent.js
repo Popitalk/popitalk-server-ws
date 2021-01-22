@@ -2,22 +2,27 @@
 const state = require("./state");
 const { WS_EVENTS } = require("./constants");
 const { subscriber, publisher } = require("./pubSub");
-// const redis = require("./redis");
+const redis = require("./redis");
 
 const logoutEvent = async userId => {
   // entries error, why?
-  for await (const cid of state.users.get(userId).entries()) {
-    if (cid[1] === "friend") {
-      publisher({
-        type: WS_EVENTS.CHANNEL.SET_FRIEND_OFFLINE,
-        channelId: cid[0],
-        initiator: userId,
-        payload: { channelId: cid[0] }
-      });
-    }
-  }
-
   for await (const cid of state.users.get(userId).keys()) {
+    await redis.srem(`viewers:${cid}`, userId);
+
+    publisher({
+      type: WS_EVENTS.CHANNEL.SET_FRIEND_OFFLINE,
+      channelId: cid,
+      initiator: userId,
+      payload: { channelId: cid }
+    });
+
+    publisher({
+      type: WS_EVENTS.CHANNEL.DELETE_VIEWER,
+      channelId: cid,
+      initiator: userId,
+      payload: { channelId: cid, userId }
+    });
+
     if (state.channels.has(cid)) {
       state.channels.get(cid).delete(userId);
 
@@ -30,8 +35,8 @@ const logoutEvent = async userId => {
 
   subscriber.unsubscribe(userId);
   state.users.delete(userId);
-  // state.websockets.delete(userId);
 
+  // state.websockets.delete(userId);
   // await pipeline.exec();
 };
 
