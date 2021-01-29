@@ -14,10 +14,21 @@ wss.on("connection", async ws => {
   if (!wsTicket || wsTicket.length === 0) return ws.terminate();
 
   const loginDataUnparsed = await redis.get(wsTicket);
-  if (!loginDataUnparsed) return ws.terminate();
 
-  const loginData = JSON.parse(loginDataUnparsed);
-  const userId = loginData.userId;
+  let loginData;
+  let userId;
+
+  if (loginDataUnparsed) {
+    loginData = JSON.parse(loginDataUnparsed);
+    userId = loginData.userId;
+  } else {
+    loginData = {
+      userId: wsTicket,
+      channels: [],
+      friends: {}
+    };
+    userId = loginData.userId;
+  }
 
   ws.on("error", err => {
     console.log("ERROR: ", err);
