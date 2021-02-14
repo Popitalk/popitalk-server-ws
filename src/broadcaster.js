@@ -33,7 +33,7 @@ const broadcaster = async ({
         console.log("adds user id, ", { userId });
 
         state.channels.get(channelId).add(userId);
-      } else if (messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL) {
+      } else if (messageType === WS_EVENTS.USER.UNSUBSCRIBE_CHANNEL && messagePayload.type === 'channel') {
         state.users.get(userId).delete(channelId);
         state.channels.get(channelId).delete(userId);
 
@@ -64,7 +64,6 @@ const broadcaster = async ({
 
       if (state.channels.has(channelId)) {
         const userIds = state.channels.get(channelId).values();
-        console.log("add member event, ", { userIds });
 
         for await (const uid of userIds) {
           const ws = state.websockets.get(uid);
